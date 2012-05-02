@@ -1,0 +1,103 @@
+% Robert Adams CS 475
+
+\documentclass[letterpaper,10pt]{article} %twocolumn titlepage 
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsthm}
+
+\usepackage{alltt}
+\usepackage{float}
+\usepackage{color}
+\usepackage{url}
+
+\usepackage{balance}
+\usepackage[TABBOTCAP, tight]{subfigure}
+\usepackage{enumitem}
+\usepackage{pstricks, pst-node}
+
+
+\usepackage{geometry}
+\geometry{margin=1in, textheight=8.5in} %textwidth=6in
+
+%random comment
+
+\newcommand{\cred}[1]{{\color{red}#1}}
+\newcommand{\cblue}[1]{{\color{blue}#1}}
+
+\usepackage{hyperref}
+
+\def\name{Robert M Adams}
+
+%% The following metadata will show up in the PDF properties
+\hypersetup{
+    colorlinks = true,
+    urlcolor = black,
+    pdfauthor = {\name},
+    pdfkeywords = {cs745},
+    pdftitle = {CS 475 Project 4: OpenMP: Numeric Integration},
+    pdfsubject = {CS 475 Project 4},
+    pdfpagemode = UseNone,
+}
+
+
+\begin{document}
+\title{CS 475 Project 4: OpenMP: Numeric Integration} 
+\author{Robert Adams}
+\maketitle
+
+
+The purpose of this assignment is to experiment with and benchmark speedups gained from using OpenMP on a calculation intensive for loop.
+
+
+\section{Results}
+
+What do you think the actual volume is?
+
+I think the actual volume is something around 14.069482
+
+
+
+
+The for loop run on a single thread remains constant; the loop run with threads looks to become more efficient as the number of elements increase. Since my machine has only two cores with hyperthreading I will only see performance gains for up to 4 threads. 8 threads may be slightly slower due to the overhead of creation. 
+
+
+
+	The performance dip between 100 and 1000 elements is of interest. This may have something to do with either the sharing of a variable or cache misses. I, however, do not see how.  I’ve set the loop with reduction(+:volume) to prevent sharing of this variable, keeping it from being continually reloaded in the L3. It’s possible this dip has something to do with the OSX scheduler de-prioritizing the process.
+  
+  
+  \subsection{System Specifications}
+
+Model Identifier: MacBookPro 8,1
+
+Processor Name: Intel Core i5
+
+Processor Speed: 2.3 GHz
+
+Number of Processors: 1
+
+Total Number of Cores: 2 (+hyperthreading)
+
+L2 Cache (per Core): 256 KB
+
+L3 Cache: 3 MB
+
+Memory: 4 GB
+
+\begin{figure} [ht]
+    \centering
+    \input{graph1.tex}
+	\caption{Speed of height calculations performed on a subdivided surface} 
+    \label{runtimes}
+\end{figure}
+
+%\begin{figure} [ht]
+    %\centering
+    %\input{plot_difference.tex}
+    %\caption{A run with with percent speedup calculated. simd mflops/non-simd mflops} 
+    %\label{runtimes}
+%\end{figure}
+
+
+
+\end{document}

@@ -1,0 +1,17 @@
+#set terminal latex enhanced color
+#set output "plot.tex"
+set term epslatex
+set output "graph1.eps"
+set log x
+set xlabel "number of elements"
+set ylabel "MegaHeights/sec" #offset -5.0, 0.0
+
+#set nokey
+#set yrange [80:150]
+set style data lp
+
+plot '1thread.out' title '1 thread' lc rgb '#471EFF' lt 1 lw 1.5, \
+	'2threads.out' title '2 threads' lc rgb '#1EFFB7' lt 1 lw 1.5, \
+	'4threads.out' title '4 threads' lc rgb '#B0D318' lt 1 lw  1.5, \
+	'8threads.out' title '8 threads' lc rgb '#FF1E65' lt 1 lw 1.5
+
