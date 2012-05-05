@@ -9,6 +9,7 @@
 #if !defined(NUMTHREADS)
 #define NUMTHREADS 4
 #endif
+#define NUM_TRIALS 10
 
 // constants:
 const double G         		= 6.67300e-11;	// m^3 / ( kg s^2 )
@@ -48,8 +49,8 @@ int main( int argc, char *argv[ ] ) {
 #endif
 
     omp_set_num_threads( NUMTHREADS );
-//    int numProcessors = omp_get_num_procs( );
-//    fprintf( stderr, "Have %d processors.\n", numProcessors );
+    //    int numProcessors = omp_get_num_procs( );
+    //    fprintf( stderr, "Have %d processors.\n", numProcessors );
 
 
     for( int i = 0; i < NUMBODIES; i++ ) {
@@ -72,60 +73,58 @@ int main( int argc, char *argv[ ] ) {
 
 
     double time0 = omp_get_wtime( );
+    for(int k =0; k < NUM_TRIALS; ++k) {
+        //#pragma omp parallel for default(none) shared(Bodies) 
+        for( int t = 0; t < NUMSTEPS; t++ ) {
+#pragma omp parallel for default(none) private(Bodies) schedule(dynamic) 
+            for( int i = 0; i < NUMBODIES; i++ ) {
+                float fx = 0.;
+                float fy = 0.;
+                float fz = 0.;
+                Body *bi = &Bodies[i];
+//#pragma omp parallel for default(none) private(Bodies) shared(bi) reduction(+:fx, fy, fz) schedule(static) 
 
-    for( int t = 0; t < NUMSTEPS; t++ ) {
-#pragma omp parallel for default(none) shared(Bodies)
-        for( int i = 0; i < NUMBODIES; i++ ) {
-//            printf("thread %d, i = %d\n", omp_get_thread_num(), i); // for debug
-            float fx = 0.;
-            float fy = 0.;
-            float fz = 0.;
-            Body *bi = &Bodies[i];
-//#pragma omp parallel for default(none) shared(Bodies, bi) reduction(+:fx, fy, fz)
-            for( int j = 0; j < NUMBODIES; j++ ) {
-//            printf("thread %d, j = %d\n", omp_get_thread_num(), j); // for debug
-                Body *bj = &Bodies[j];
-                float rsqd = GetDistanceSquared( bi, bj );
-                float mass_rsqd = rsqd / bj->mass;
-                if( mass_rsqd < MASS_DIST_SQUARED ) {
-                    float f = ( G * bi->mass / mass_rsqd );
-                    float ux, uy, uz;
-                    GetUnitVector( bi, bj,   &ux, &uy, &uz );
-                    fx += f * ux;
-                    fy += f * uy;
-                    fz += f * uz;
+                for( int j = 0; j < NUMBODIES; j++ ) {
+                    Body *bj = &Bodies[j];
+                    float rsqd = GetDistanceSquared( bi, bj );
+                    float mass_rsqd = rsqd / bj->mass;
+                    if( mass_rsqd < MASS_DIST_SQUARED ) {
+                        float f = ( G * bi->mass / mass_rsqd );
+                        float ux, uy, uz;
+                        GetUnitVector( bi, bj,   &ux, &uy, &uz );
+                        fx += f * ux;
+                        fy += f * uy;
+                        fz += f * uz;
+                    }
                 }
+
+                float ax = fx / Bodies[i].mass;
+                float ay = fy / Bodies[i].mass;
+                float az = fz / Bodies[i].mass;
+
+                Bodies[i].xnew = Bodies[i].x + Bodies[i].vx*TIMESTEP + 0.5*ax*TIMESTEP*TIMESTEP;
+                Bodies[i].ynew = Bodies[i].y + Bodies[i].vy*TIMESTEP + 0.5*ay*TIMESTEP*TIMESTEP;
+                Bodies[i].znew = Bodies[i].z + Bodies[i].vz*TIMESTEP + 0.5*az*TIMESTEP*TIMESTEP;
+
+                Bodies[i].vxnew = Bodies[i].vx + ax*TIMESTEP;
+                Bodies[i].vynew = Bodies[i].vy + ay*TIMESTEP;
+                Bodies[i].vznew = Bodies[i].vz + az*TIMESTEP;
             }
 
-            float ax = fx / Bodies[i].mass;
-            float ay = fy / Bodies[i].mass;
-            float az = fz / Bodies[i].mass;
+            for( int i = 0; i < NUMBODIES; i++ ) {
+                Bodies[i].x = Bodies[i].xnew;
+                Bodies[i].y = Bodies[i].ynew;
+                Bodies[i].z = Bodies[i].znew;
+                Bodies[i].vx = Bodies[i].vxnew;
+                Bodies[i].vy = Bodies[i].vynew;
+                Bodies[i].vz = Bodies[i].vznew;
+            }
 
-            Bodies[i].xnew = Bodies[i].x + Bodies[i].vx*TIMESTEP + 0.5*ax*TIMESTEP*TIMESTEP;
-            Bodies[i].ynew = Bodies[i].y + Bodies[i].vy*TIMESTEP + 0.5*ay*TIMESTEP*TIMESTEP;
-            Bodies[i].znew = Bodies[i].z + Bodies[i].vz*TIMESTEP + 0.5*az*TIMESTEP*TIMESTEP;
-
-            Bodies[i].vxnew = Bodies[i].vx + ax*TIMESTEP;
-            Bodies[i].vynew = Bodies[i].vy + ay*TIMESTEP;
-            Bodies[i].vznew = Bodies[i].vz + az*TIMESTEP;
-        }
-
-        //for( int i = 0; i < NUMBODIES; i++ )
-        //{
-        //Bodies[i].x = Bodies[i].xnew;
-        //Bodies[i].y = Bodies[i].ynew;
-        //Bodies[i].z = Bodies[i].znew;
-        //Bodies[i].vx = Bodies[i].vxnew;
-        //Bodies[i].vy = Bodies[i].vynew;
-        //Bodies[i].vz = Bodies[i].vznew;
-        //}
-
-
-    }  // t
-
+        }  // t
+    }
     double time1 = omp_get_wtime( );
 
-    float mflops = ((float)(NUMBODIES*NUMBODIES*NUMSTEPS)/(time1-time0)/1000000.); 
+    float mflops = ((float)(NUMBODIES*NUMBODIES*NUMSTEPS)/((time1-time0) / NUM_TRIALS)/1000000.); 
     printf("%d\t%8.3f\n", NUMTHREADS, mflops);
 
     return 0;
