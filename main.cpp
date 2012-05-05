@@ -47,9 +47,9 @@ int main( int argc, char *argv[ ] ) {
     return 1;
 #endif
 
-    //omp_set_num_threads( NUMTHREADS );
-    //int numProcessors = omp_get_num_procs( );
-    //fprintf( stderr, "Have %d processors.\n", numProcessors );
+    omp_set_num_threads( NUMTHREADS );
+//    int numProcessors = omp_get_num_procs( );
+//    fprintf( stderr, "Have %d processors.\n", numProcessors );
 
 
     for( int i = 0; i < NUMBODIES; i++ ) {
@@ -71,15 +71,19 @@ int main( int argc, char *argv[ ] ) {
 #define MASS_DIST_SQUARED	( ( MIN_DIST * MIN_DIST ) / MAX_MASS )
 
 
-    //double time0 = omp_get_wtime( );
+    double time0 = omp_get_wtime( );
 
     for( int t = 0; t < NUMSTEPS; t++ ) {
+#pragma omp parallel for default(none) shared(Bodies)
         for( int i = 0; i < NUMBODIES; i++ ) {
+//            printf("thread %d, i = %d\n", omp_get_thread_num(), i); // for debug
             float fx = 0.;
             float fy = 0.;
             float fz = 0.;
             Body *bi = &Bodies[i];
+//#pragma omp parallel for default(none) shared(Bodies, bi) reduction(+:fx, fy, fz)
             for( int j = 0; j < NUMBODIES; j++ ) {
+//            printf("thread %d, j = %d\n", omp_get_thread_num(), j); // for debug
                 Body *bj = &Bodies[j];
                 float rsqd = GetDistanceSquared( bi, bj );
                 float mass_rsqd = rsqd / bj->mass;
@@ -119,7 +123,10 @@ int main( int argc, char *argv[ ] ) {
 
     }  // t
 
-    //double time1 = omp_get_wtime( );
+    double time1 = omp_get_wtime( );
+
+    float mflops = ((float)(NUMBODIES*NUMBODIES*NUMSTEPS)/(time1-time0)/1000000.); 
+    printf("%d\t%8.3f\n", NUMTHREADS, mflops);
 
     return 0;
 }

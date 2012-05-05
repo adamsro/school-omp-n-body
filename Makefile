@@ -1,7 +1,7 @@
 all: main.o #pdf
 
 main.o:	main.cpp 
-		g++  -g -DNUMTHREADS=2 -o main main.cpp -fopenmp -lm 
+		g++  -g -DNUMTHREADS=8 -o main main.cpp -fopenmp -lm 
 
 clean:
 	rm -rf *o 
